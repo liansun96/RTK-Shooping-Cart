@@ -1,10 +1,30 @@
 import { createSlice } from "@reduxjs/toolkit";
+import Cookies from "js-cookie";
 
 const initialState = {
   cartItem: [],
   totalAmount: 0,
   quantity: 0,
 };
+
+const STORAGE_KEY = "cartItem";
+
+const storedItems = Cookies.get(STORAGE_KEY);
+
+if(storedItems){
+  initialState.cartItem = JSON.parse(storedItems)
+  initialState.totalAmount = calculateTotalAmount(initialState.cartItem)
+  initialState.quantity = calculateQuantity(initialState.cartItem)
+}
+
+function calculateTotalAmount (cartItem) {
+  return cartItem.reduce((total,item) => total + item.price , 0)
+}
+
+function calculateQuantity (cartItem) {
+  return cartItem.reduce((total, item) => total + item.quantity , 0)
+}
+
 
 export const cartSlice = createSlice({
   name: "cart",
@@ -17,8 +37,9 @@ export const cartSlice = createSlice({
       } else {
         state.cartItem = [...state.cartItem, { ...payload, quantity: 1 }];
       }
-      state.totalAmount += payload.price;
-      state.quantity++;
+      state.totalAmount += calculateTotalAmount(state.cartItem);
+      state.quantity += calculateQuantity(state.cartItem)
+      Cookies.set(STORAGE_KEY, JSON.stringify(state.cartItem))
     },
     removeFromCart: (state, { payload }) => {
       state.cartItem = state.cartItem.filter((item) => item.id !== payload.id);
@@ -47,10 +68,14 @@ export const cartSlice = createSlice({
       state.quantity--;
       state.totalAmount -= payload.price;
     },
+    clearCart:(state) => {
+        state.cartItem = []
+        return state;
+    }
   },
 });
 
-export const { addToCart, removeFromCart, incItemQuantity, decItemQuantity } =
+export const { addToCart, removeFromCart, incItemQuantity, decItemQuantity ,clearCart } =
   cartSlice.actions;
 
 export default cartSlice.reducer;
